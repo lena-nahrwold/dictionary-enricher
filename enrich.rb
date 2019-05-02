@@ -8,16 +8,26 @@ require 'pry'
 
 def get_result_from_jisho(input)
 	uri = URI.parse(URI.escape("https://jisho.org/api/v1/search/words?keyword=" + input))
-	result = Net::HTTP.get(uri) 
+	result = Net::HTTP.get(uri)
 	json = JSON.parse(result)
 	return json["data"]
+end
+
+def parse_raw_jisho_results(jisho_data)
+	translations = Array.new
+	jisho_data.each do |element|
+		element["senses"].each do |sense|
+			translations.push(sense["english_definitions"])
+		end
+	end
+	return translations
 end
 
 begin
 
 	unless ARGV.length == 1
-		puts "Fehler: Bitte übergebe genau einen Kommandozeilenparameter mit dem Pfad der Input-Datei." 
-		return 
+		puts "Fehler: Bitte übergebe genau einen Kommandozeilenparameter mit dem Pfad der Input-Datei."
+		return
 	end
 
 	file_name = ARGV[0]
@@ -34,20 +44,20 @@ begin
 	  end
 	end
 
-	unless lines.count % 4 == 0 
+	unless lines.count % 4 == 0
 		puts "Fehler: Die Zeilenanzahl der Input-Datei ist nicht durch vier teilbar."
-		return 
+		return
 	end
 
 	lines.each_with_index do |line, index|
-		if (index + 1) % 4 == 0 
+		if (index + 1) % 4 == 0
 			entry = Hash.new
-			entry = { 
+			entry = {
 					  "lautschrift": lines[index - 3],
 					  "japanisch": lines[index - 2],
 					  "english": lines[index - 1],
 					  "seitenzahl": lines[index],
-					  "jisho": get_result_from_jisho(lines[index - 2])
+					  "jisho_english_translations": parse_raw_jisho_results(get_result_from_jisho(lines[index - 2]))
 					}
 			output.push(entry)
 		end
@@ -62,5 +72,3 @@ begin
 rescue Exception => e
 	puts "Fehler: #{e}"
 end
-
-
